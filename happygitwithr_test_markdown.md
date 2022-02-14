@@ -3,33 +3,45 @@ happy git with r test markdown
 Mikus
 2022-02-14
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax
-for authoring HTML, PDF, and MS Word documents. For more details on
-using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that
-includes both content as well as the output of any embedded R code
-chunks within the document. You can embed an R code chunk like this:
-
 ``` r
-summary(cars)
+library(gapminder)
+library(tidyverse)
 ```
 
-    ##      speed           dist       
-    ##  Min.   : 4.0   Min.   :  2.00  
-    ##  1st Qu.:12.0   1st Qu.: 26.00  
-    ##  Median :15.0   Median : 36.00  
-    ##  Mean   :15.4   Mean   : 42.98  
-    ##  3rd Qu.:19.0   3rd Qu.: 56.00  
-    ##  Max.   :25.0   Max.   :120.00
+    ## -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
 
-## Including Plots
+    ## v ggplot2 3.3.5     v purrr   0.3.4
+    ## v tibble  3.1.6     v dplyr   1.0.7
+    ## v tidyr   1.1.4     v stringr 1.4.0
+    ## v readr   2.1.1     v forcats 0.5.1
 
-You can also embed plots, for example:
+    ## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
+    ## x dplyr::filter() masks stats::filter()
+    ## x dplyr::lag()    masks stats::lag()
 
-![](happygitwithr_test_markdown_files/figure-gfm/pressure-1.png)<!-- -->
+``` r
+library(modelr)
+# lm function
+country_model <- function(df) {
+        lm(lifeExp ~ year, data = df)
+}
 
-Note that the `echo = FALSE` parameter was added to the code chunk to
-prevent printing of the R code that generated the plot.
+# nested data
+by_country <- gapminder %>% 
+        group_by(country, continent) %>% 
+        # create nested data
+        nest() %>% 
+        # run lm function
+        mutate(model = map(data, country_model)) %>% 
+        # add residuals
+        mutate(resids = map2(data, model, add_residuals))
+
+resids <- unnest(by_country, resids) %>% 
+        ggplot(aes(year, resid)) +
+        geom_line(aes(group = country),
+                  alpha = 1/3) +
+        facet_wrap((~continent))
+resids
+```
+
+![](happygitwithr_test_markdown_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
